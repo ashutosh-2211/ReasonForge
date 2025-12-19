@@ -1,0 +1,154 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'ReasonForge - S3 Buckets for Models, Adapters, and Datasets'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: reasonforge
+    Description: Project name used for resource naming
+
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Environment name
+
+Resources:
+  # Models Bucket - Store base models and fine-tuned models
+  ModelsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-models-${Environment}-${AWS::AccountId}'
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: IntelligentTieringTransition
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: INTELLIGENT_TIERING
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: Model Storage
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Adapters Bucket - Store LoRA/QLoRA adapters
+  AdaptersBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-adapters-${Environment}-${AWS::AccountId}'
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: IntelligentTieringTransition
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: INTELLIGENT_TIERING
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: Adapter Storage
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Datasets Bucket - Store training datasets
+  DatasetsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-datasets-${Environment}-${AWS::AccountId}'
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: IntelligentTieringTransition
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 90
+                StorageClass: INTELLIGENT_TIERING
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: Dataset Storage
+        - Key: ManagedBy
+          Value: CloudFormation
+
+Outputs:
+  ModelsBucketName:
+    Description: Name of the models S3 bucket
+    Value: !Ref ModelsBucket
+    Export:
+      Name: !Sub '${ProjectName}-models-bucket-${Environment}'
+
+  ModelsBucketArn:
+    Description: ARN of the models S3 bucket
+    Value: !GetAtt ModelsBucket.Arn
+    Export:
+      Name: !Sub '${ProjectName}-models-bucket-arn-${Environment}'
+
+  AdaptersBucketName:
+    Description: Name of the adapters S3 bucket
+    Value: !Ref AdaptersBucket
+    Export:
+      Name: !Sub '${ProjectName}-adapters-bucket-${Environment}'
+
+  AdaptersBucketArn:
+    Description: ARN of the adapters S3 bucket
+    Value: !GetAtt AdaptersBucket.Arn
+    Export:
+      Name: !Sub '${ProjectName}-adapters-bucket-arn-${Environment}'
+
+  DatasetsBucketName:
+    Description: Name of the datasets S3 bucket
+    Value: !Ref DatasetsBucket
+    Export:
+      Name: !Sub '${ProjectName}-datasets-bucket-${Environment}'
+
+  DatasetsBucketArn:
+    Description: ARN of the datasets S3 bucket
+    Value: !GetAtt DatasetsBucket.Arn
+    Export:
+      Name: !Sub '${ProjectName}-datasets-bucket-${Environment}'

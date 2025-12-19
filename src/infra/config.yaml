@@ -1,0 +1,122 @@
+# ReasonForge Infrastructure Configuration
+
+project:
+  name: reasonforge
+  environment: dev
+  region: us-east-1
+  account: "" # Will be detected from AWS CLI/environment
+
+# S3 Buckets for storage
+storage:
+  buckets:
+    models:
+      name: reasonforge-models
+      versioning: true
+      lifecycle_rules:
+        - id: intelligent-tiering
+          enabled: true
+          transitions:
+            - days: 30
+              storage_class: INTELLIGENT_TIERING
+
+    adapters:
+      name: reasonforge-adapters
+      versioning: true
+      lifecycle_rules:
+        - id: intelligent-tiering
+          enabled: true
+          transitions:
+            - days: 30
+              storage_class: INTELLIGENT_TIERING
+
+    datasets:
+      name: reasonforge-datasets
+      versioning: true
+      lifecycle_rules:
+        - id: intelligent-tiering
+          enabled: true
+          transitions:
+            - days: 90
+              storage_class: INTELLIGENT_TIERING
+
+# EC2 Training Instance Configuration
+training:
+  instance:
+    instance_type: g5.xlarge  # Single A10G GPU, 4 vCPUs, 16 GB RAM
+    ami: # Deep Learning AMI GPU PyTorch 2.1 (Ubuntu 20.04)
+      name_pattern: "Deep Learning AMI GPU PyTorch * (Ubuntu 20.04)*"
+      owners: ["amazon"]
+
+    storage:
+      root_volume_size: 200  # GB
+      volume_type: gp3
+      iops: 3000
+      throughput: 125
+
+    spot_instance: false  # Set to true for cost savings
+
+    key_pair_name: "" # Add your key pair name here
+
+    user_data:
+      install_packages:
+        - unsloth
+        - transformers
+        - datasets
+        - bitsandbytes
+        - accelerate
+        - trl
+        - peft
+
+      git_repos:
+        - url: https://github.com/unslothai/unsloth
+          path: /home/ubuntu/unsloth
+
+# IAM Configuration
+iam:
+  roles:
+    training_instance:
+      name: reasonforge-training-instance-role
+      managed_policies:
+        - AmazonS3FullAccess
+        - CloudWatchAgentServerPolicy
+
+      inline_policies:
+        s3_access:
+          actions:
+            - s3:GetObject
+            - s3:PutObject
+            - s3:DeleteObject
+            - s3:ListBucket
+          resources:
+            - "arn:aws:s3:::reasonforge-*"
+            - "arn:aws:s3:::reasonforge-*/*"
+
+# VPC Configuration (optional - can use default VPC)
+networking:
+  use_default_vpc: true
+
+  # Uncomment if you want to create a custom VPC
+  # vpc:
+  #   cidr: 10.0.0.0/16
+  #   max_azs: 2
+  #   nat_gateways: 1
+
+# Security Groups
+security:
+  training_instance:
+    ingress_rules:
+      - description: SSH access
+        port: 22
+        cidr: 0.0.0.0/0  # Restrict this to your IP in production
+
+      - description: Jupyter/JupyterLab
+        port: 8888
+        cidr: 0.0.0.0/0  # Restrict this to your IP in production
+
+# Tags
+tags:
+  Project: ReasonForge
+  ManagedBy: CDK
+  Purpose: LLM Training
+  Model: Qwen3-4B
+  Dataset: Turing-Open-Reasoning

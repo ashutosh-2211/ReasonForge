@@ -1,0 +1,125 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'ReasonForge - IAM Roles and Policies for Training Infrastructure'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: reasonforge
+    Description: Project name used for resource naming
+
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Environment name
+
+Resources:
+  # IAM Role for EC2 Training Instance
+  TrainingInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-training-instance-role-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # S3 Access Policy for Training Instance
+  TrainingInstanceS3Policy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${ProjectName}-training-s3-access-${Environment}'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: S3BucketAccess
+            Effect: Allow
+            Action:
+              - 's3:ListBucket'
+              - 's3:GetBucketLocation'
+            Resource:
+              - !Sub 'arn:aws:s3:::${ProjectName}-models-${Environment}-${AWS::AccountId}'
+              - !Sub 'arn:aws:s3:::${ProjectName}-adapters-${Environment}-${AWS::AccountId}'
+              - !Sub 'arn:aws:s3:::${ProjectName}-datasets-${Environment}-${AWS::AccountId}'
+
+          - Sid: S3ObjectAccess
+            Effect: Allow
+            Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+              - 's3:GetObjectVersion'
+            Resource:
+              - !Sub 'arn:aws:s3:::${ProjectName}-models-${Environment}-${AWS::AccountId}/*'
+              - !Sub 'arn:aws:s3:::${ProjectName}-adapters-${Environment}-${AWS::AccountId}/*'
+              - !Sub 'arn:aws:s3:::${ProjectName}-datasets-${Environment}-${AWS::AccountId}/*'
+      Roles:
+        - !Ref TrainingInstanceRole
+
+  # ECR Access Policy (for pulling custom Docker images if needed)
+  TrainingInstanceECRPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${ProjectName}-training-ecr-access-${Environment}'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ECRPullAccess
+            Effect: Allow
+            Action:
+              - 'ecr:GetAuthorizationToken'
+              - 'ecr:BatchCheckLayerAvailability'
+              - 'ecr:GetDownloadUrlForLayer'
+              - 'ecr:BatchGetImage'
+            Resource: '*'
+      Roles:
+        - !Ref TrainingInstanceRole
+
+  # Instance Profile for EC2
+  TrainingInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub '${ProjectName}-training-instance-profile-${Environment}'
+      Roles:
+        - !Ref TrainingInstanceRole
+
+Outputs:
+  TrainingInstanceRoleArn:
+    Description: ARN of the training instance IAM role
+    Value: !GetAtt TrainingInstanceRole.Arn
+    Export:
+      Name: !Sub '${ProjectName}-training-role-arn-${Environment}'
+
+  TrainingInstanceRoleName:
+    Description: Name of the training instance IAM role
+    Value: !Ref TrainingInstanceRole
+    Export:
+      Name: !Sub '${ProjectName}-training-role-name-${Environment}'
+
+  TrainingInstanceProfileArn:
+    Description: ARN of the training instance profile
+    Value: !GetAtt TrainingInstanceProfile.Arn
+    Export:
+      Name: !Sub '${ProjectName}-training-instance-profile-arn-${Environment}'
+
+  TrainingInstanceProfileName:
+    Description: Name of the training instance profile
+    Value: !Ref TrainingInstanceProfile
+    Export:
+      Name: !Sub '${ProjectName}-training-instance-profile-${Environment}'
