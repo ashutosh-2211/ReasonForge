@@ -151,4 +151,4 @@ Outputs:
     Description: ARN of the datasets S3 bucket
     Value: !GetAtt DatasetsBucket.Arn
     Export:
-      Name: !Sub '${ProjectName}-datasets-bucket-${Environment}'
+      Name: !Sub '${ProjectName}-datasets-bucket-arn-${Environment}'

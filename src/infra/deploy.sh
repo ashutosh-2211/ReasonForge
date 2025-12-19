@@ -134,14 +134,14 @@ echo ""
 # Deploy S3 Buckets
 deploy_stack \
     "${PROJECT_NAME}-s3-buckets-${ENVIRONMENT}" \
-    "cloudformation/01-s3-buckets.yaml" \
+    "/Users/ashutosh/Works/personal/fundamental/ReasonForge/src/infra/cloudformation/01-s3-buckets.yaml" \
     "${COMMON_PARAMS}"
 echo ""
 
 # Deploy IAM Roles
 deploy_stack \
     "${PROJECT_NAME}-iam-roles-${ENVIRONMENT}" \
-    "cloudformation/02-iam-roles.yaml" \
+    "/Users/ashutosh/Works/personal/fundamental/ReasonForge/src/infra/cloudformation/02-iam-roles.yaml" \
     "${COMMON_PARAMS}"
 echo ""
 
