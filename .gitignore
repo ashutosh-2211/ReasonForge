@@ -10,8 +10,6 @@ __pycache_
 /src/train/data_cache/
 /src/train/model_cache/
 /src/train/unsloth_compiled_cache/
-/src/train/eval_results/
-/src/train/test_results/
 
 .ipynb_checkpoints/
 
